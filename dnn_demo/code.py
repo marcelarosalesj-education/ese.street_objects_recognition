@@ -1,8 +1,11 @@
 """
+Object detection program that detect from the webcam
 
 Resources: https://heartbeat.fritz.ai/real-time-object-detection-on-raspberry-pi-using-opencv-dnn-98827255fa60
 """
 import cv2
+
+print("Hello World!")
 
 # Pretrained classes in the model
 classNames = {0: 'background',
@@ -23,21 +26,26 @@ classNames = {0: 'background',
               80: 'toaster', 81: 'sink', 82: 'refrigerator', 84: 'book', 85: 'clock',
               86: 'vase', 87: 'scissors', 88: 'teddy bear', 89: 'hair drier', 90: 'toothbrush'}
 
-
 def id_class_name(class_id, classes):
     for key,value in classes.items():
         if class_id == key:
             return value
 
-
 # The model
 model = cv2.dnn.readNetFromTensorflow('frozen_inference_graph.pb', 'ssd_mobilenet_v2_coco_2018_03_29.pbtxt')
+print("Model created")
 
+cap = cv2.VideoCapture(0)
+image = None
+print("Press -q- to select the frame")
+while(True):
+    # Capture frame-by-frame
+    ret, image = cap.read()
+    cv2.imshow('Frame for recognition',image)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
 
-# The input image
-#image = cv2.imread("image.jpeg")
-#image = cv2.imread("picture.jpg")
-image = cv2.imread("speedLimit.png")
+print("Image captured")
 
 image_height, image_width, _ = image.shape
 
@@ -48,14 +56,12 @@ To feed image into a network we need to convert image into a blob
 """
 model.setInput(cv2.dnn.blobFromImage(image, size=(300, 300), swapRB=True))
 
-
 output = model.forward()
 for detection in output[0, 0, :, :]:
     confidence = detection[2]
-    if confidence > 0.15:
+    if confidence > 0.5:
         class_id = detection[1] # class id
         class_name=id_class_name(class_id,classNames)
-        #if class_name != "person" and class_name != "dog":
         print(str(str(class_id) + " " + str(detection[2])  + " " + class_name))
         print(">"+str(detection[0]))
         print(">"+str(detection[1]))
