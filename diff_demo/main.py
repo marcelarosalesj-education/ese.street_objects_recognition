@@ -8,12 +8,12 @@ import numpy as np
 
 parser = argparse.ArgumentParser(description='Image Similarity Tool')
 parser.add_argument('-i', '--input', nargs=2, required=True,
-                    help='Input image')
+                    help='Two input images')
 parser.add_argument('-s', '--scale', nargs='?',
                     help='Scale of original image',
                     default=0.5)
 parser.add_argument('-a', '--algorithm', required=True,
-                    choices=['abs', 'sift'],
+                    choices=['abs', 'sift', 'kaze'],
                     help='Algorithm for difference comparison')
 
 def get_resized_image(image, scale=0.5):
@@ -102,6 +102,49 @@ def diff_sift(image1, image2):
     cv2.imshow('result', result)
     return len(good_points) / number_keypoints * 100
 
+def diff_kaze(image1, image2):
+    """Calculates how similar are two images based on KAZE descriptors
+
+    https://medium.com/machine-learning-world/feature-extraction-and-similar-image-search-with-opencv-for-newbies-3c59796bf774
+
+    Args:
+        param1: image
+        param2: image
+    Returns:
+        float: percentage
+
+    """
+    kaze = cv2.KAZE_create()
+    key_points_1, desc_1 = kaze.detectAndCompute(image1, None)
+    key_points_2, desc_2 = kaze.detectAndCompute(image2, None)
+    print('Key Points 1st: {}'.format(len(key_points_1)))
+    print('Key Points 2nd: {}'.format(len(key_points_2)))
+
+    index_params = dict(algorithm=0, trees=5)
+    search_params = dict()
+    flann = cv2.FlannBasedMatcher(index_params, search_params)
+
+    matches = flann.knnMatch(desc_1, desc_2, k=2)
+
+    good_points = []
+    ratio = 0.6
+    for m, n in matches:
+        # The less the distance, the better the matches
+        if m.distance < ratio*n.distance:
+            good_points.append(m)
+    print('Good Points: {}'.format(len(good_points)))
+
+    # How similar they are
+    number_keypoints = 0
+    number_keypoints = (
+        len(key_points_1) if len(key_points_1) >= len(key_points_2)
+        else len(key_points_2))
+
+    result = cv2.drawMatches(image1, key_points_1, image2, key_points_2, good_points, None)
+    cv2.imshow('result', result)
+    return len(good_points) / number_keypoints * 100
+
+
 def main():
     """
     main
@@ -127,6 +170,7 @@ def main():
     switcher = {
         'abs': diff_abs,
         'sift': diff_sift,
+        'kaze': diff_kaze,
     }
     result = switcher[args.algorithm](resized_img1, resized_img2)
     print("Result is {0:.2f} %".format(result))
