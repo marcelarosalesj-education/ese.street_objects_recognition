@@ -82,7 +82,11 @@ def diff_sift(image1, image2):
     search_params = dict()
     flann = cv2.FlannBasedMatcher(index_params, search_params)
 
-    matches = flann.knnMatch(desc_1, desc_2, k=2)
+    try:
+        matches = flann.knnMatch(desc_1, desc_2, k=2)
+    except cv2.error as e:
+        print('There was an error in SIFT Match phase')
+        return -1
 
     good_points = []
     ratio = 0.6
@@ -99,7 +103,7 @@ def diff_sift(image1, image2):
         else len(key_points_2))
 
     result = cv2.drawMatches(image1, key_points_1, image2, key_points_2, good_points, None)
-    cv2.imshow('result', result)
+    cv2.imshow('result_sift', result)
     return len(good_points) / number_keypoints * 100
 
 def diff_kaze(image1, image2):
@@ -124,7 +128,11 @@ def diff_kaze(image1, image2):
     search_params = dict()
     flann = cv2.FlannBasedMatcher(index_params, search_params)
 
-    matches = flann.knnMatch(desc_1, desc_2, k=2)
+    try:
+        matches = flann.knnMatch(desc_1, desc_2, k=2)
+    except cv2.error as e:
+        print('There was an error in KAZE Match phase')
+        return -1
 
     good_points = []
     ratio = 0.6
@@ -141,7 +149,7 @@ def diff_kaze(image1, image2):
         else len(key_points_2))
 
     result = cv2.drawMatches(image1, key_points_1, image2, key_points_2, good_points, None)
-    cv2.imshow('result', result)
+    cv2.imshow('result_kaze', result)
     return len(good_points) / number_keypoints * 100
 
 def diff_surf(image1, image2):
@@ -165,7 +173,11 @@ def diff_surf(image1, image2):
     search_params = dict()
     flann = cv2.FlannBasedMatcher(index_params, search_params)
 
-    matches = flann.knnMatch(desc_1, desc_2, k=2)
+    try:
+        matches = flann.knnMatch(desc_1, desc_2, k=2)
+    except cv2.error as e:
+        print('There was an error in SURF Match phase')
+        return -1
 
     good_points = []
     ratio = 0.6
@@ -182,7 +194,7 @@ def diff_surf(image1, image2):
         else len(key_points_2))
 
     result = cv2.drawMatches(image1, key_points_1, image2, key_points_2, good_points, None)
-    cv2.imshow('result', result)
+    cv2.imshow('result_surf', result)
     return len(good_points) / number_keypoints * 100
 
 def main():
@@ -197,6 +209,9 @@ def main():
     # Get images
     img1 = cv2.imread(filename1)
     img2 = cv2.imread(filename2)
+    if img1.shape != img2.shape:
+        print('Images have different shapes, cannot perform a comparison right now.')
+        return -1
     display_image_information(img1)
     display_image_information(img2)
     # Resize images
@@ -214,7 +229,8 @@ def main():
         'surf': diff_surf,
     }
     result = switcher[args.algorithm](resized_img1, resized_img2)
-    print("Result is {0:.2f} %".format(result))
+    if result >= 0:
+        print("Result is {0:.2f} %".format(result))
     # Destroy windows
     cv2.waitKey(0)
     cv2.destroyAllWindows()
