@@ -15,6 +15,9 @@ parser.add_argument('-s', '--scale', nargs='?',
 parser.add_argument('-a', '--algorithm', required=True,
                     choices=['abs', 'sift', 'kaze', 'surf'],
                     help='Algorithm for difference comparison')
+parser.add_argument('-c', '--colorspace', default='bgr',
+                    choices=['bgr', 'gray'],
+                    help='Select colorspace for processing images')
 
 def get_resized_image(image, scale=0.5):
     """
@@ -25,11 +28,15 @@ def get_resized_image(image, scale=0.5):
     resized_image = cv2.resize(image, None, fx=scale, fy=scale)
     return resized_image
 
-def display_image_information(image):
+def display_image_information(image, header=''):
     """
     Display image shape
     """
-    print("Shape: {}x{}".format(image.shape[0], image.shape[1]))
+    print('********************')
+    if header:
+        print(header)
+    print('Shape: {}'.format(image.shape))
+    print('********************')
 
 
 def diff_abs(image1, image2):
@@ -209,18 +216,25 @@ def main():
     # Get images
     img1 = cv2.imread(filename1)
     img2 = cv2.imread(filename2)
+    # Use selected colorspace
+    if args.colorspace == 'bgr':
+        pass
+    elif args.colorspace == 'gray':
+        img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+        img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+    # Verify shape
     if img1.shape != img2.shape:
         print('Images have different shapes, cannot perform a comparison right now.')
         return -1
-    display_image_information(img1)
-    display_image_information(img2)
+    display_image_information(img1, header='Original Image 1')
+    display_image_information(img2, header='Original Image 2')
     # Resize images
     resized_img1 = get_resized_image(img1, scale)
     resized_img2 = get_resized_image(img2, scale)
     cv2.imshow("Resized Picture 1", resized_img1)
     cv2.imshow("Resized Picture 2", resized_img2)
-    display_image_information(resized_img1)
-    display_image_information(resized_img2)
+    display_image_information(resized_img1, header='Resized Image 1')
+    display_image_information(resized_img2, header='Resized Image 2')
     # Select difference algorithm
     switcher = {
         'abs': diff_abs,
