@@ -3,7 +3,9 @@ Image Difference Compare
 """
 import argparse
 import cv2
+import imutils
 import numpy as np
+import skimage.measure
 
 
 parser = argparse.ArgumentParser(description='Image Similarity Tool')
@@ -13,7 +15,7 @@ parser.add_argument('-s', '--scale', nargs='?',
                     help='Scale of original image',
                     default=0.5)
 parser.add_argument('-a', '--algorithm', required=True,
-                    choices=['abs', 'sift', 'kaze', 'surf'],
+                    choices=['abs', 'sift', 'kaze', 'surf', 'ssim'],
                     help='Algorithm for difference comparison')
 parser.add_argument('-c', '--colorspace', default='bgr',
                     choices=['bgr', 'gray'],
@@ -38,6 +40,16 @@ def display_image_information(image, header=''):
     print('Shape: {}'.format(image.shape))
     print('********************')
 
+
+def generate_random_complementary_images():
+    """ Generate random complementary images and save the result
+    """
+    from PIL import Image
+    random_img = np.random.randint(0, 255, (1000, 1000)).astype(np.uint8)
+    result = Image.fromarray(random_img)
+    result.save('out_orig.bmp')
+    result = Image.fromarray(255-random_img)
+    result.save('out_comp.bmp')
 
 def diff_abs(image1, image2):
     """ Calculates how different are two images based on Absolute difference
@@ -91,7 +103,7 @@ def diff_sift(image1, image2):
 
     try:
         matches = flann.knnMatch(desc_1, desc_2, k=2)
-    except cv2.error as e:
+    except cv2.error:
         print('There was an error in SIFT Match phase')
         return -1
 
@@ -137,7 +149,7 @@ def diff_kaze(image1, image2):
 
     try:
         matches = flann.knnMatch(desc_1, desc_2, k=2)
-    except cv2.error as e:
+    except cv2.error:
         print('There was an error in KAZE Match phase')
         return -1
 
@@ -182,7 +194,7 @@ def diff_surf(image1, image2):
 
     try:
         matches = flann.knnMatch(desc_1, desc_2, k=2)
-    except cv2.error as e:
+    except cv2.error:
         print('There was an error in SURF Match phase')
         return -1
 
@@ -200,9 +212,53 @@ def diff_surf(image1, image2):
         len(key_points_1) if len(key_points_1) >= len(key_points_2)
         else len(key_points_2))
 
-    result = cv2.drawMatches(image1, key_points_1, image2, key_points_2, good_points, None)
+    result = cv2.drawMatches(image1, key_points_1,
+                             image2, key_points_2,
+                             good_points, None)
     cv2.imshow('result_surf', result)
     return len(good_points) / number_keypoints * 100
+
+def diff_ssim(image1, image2):
+    """ Calculates how similar are two images based on SSIM algorithm
+
+    https://www.pyimagesearch.com/2017/06/19/image-difference-with-opencv-and-python/
+    https://scikit-image.org/docs/dev/api/skimage.measure.html#skimage.measure.compare_ssim
+
+    Args:
+        param1: image
+        param2: image
+    Returns:
+        float: percentage
+
+    Note that SSIM score goes from -1 to 1
+    https://github.com/jterrace/pyssim/issues/15
+    """
+
+    (score, diff) = skimage.measure.compare_ssim(image1, image2, full=True)
+    # Scale score from [-1,1] to [0,1]
+    score = (score+1)/2
+    # Scale diff differences matrix [-1,1] to [0,255]
+    diff = (diff * 255).astype('uint8')
+
+    # Apply a threshold to the differences diff image
+    thresh = cv2.threshold(diff, 0, 255,
+                           cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+    # Find contours
+    cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
+                            cv2.CHAIN_APPROX_SIMPLE)
+    cnts = imutils.grab_contours(cnts)
+    # Draw the contours on the original images
+    for c in cnts:
+        (x, y, w, h) = cv2.boundingRect(c)
+        cv2.rectangle(image1, (x, y), (x + w, y + h), (0, 0, 255), 2)
+        cv2.rectangle(image2, (x, y), (x + w, y + h), (0, 0, 255), 2)
+    # Show the output images
+    cv2.imshow("Original", image1)
+    cv2.imshow("Modified", image2)
+    cv2.imshow("Diff", diff)
+    cv2.imshow("Thresh", thresh)
+    return score
+
 
 def main():
     """
@@ -217,14 +273,12 @@ def main():
     img1 = cv2.imread(filename1)
     img2 = cv2.imread(filename2)
     # Use selected colorspace
-    if args.colorspace == 'bgr':
-        pass
-    elif args.colorspace == 'gray':
+    if args.colorspace == 'gray' or args.algorithm == 'ssim':
         img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
         img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
     # Verify shape
     if img1.shape != img2.shape:
-        print('Images have different shapes, cannot perform a comparison right now.')
+        print('Images have different shapes, cannot perform a comparison.')
         return -1
     display_image_information(img1, header='Original Image 1')
     display_image_information(img2, header='Original Image 2')
@@ -241,6 +295,7 @@ def main():
         'sift': diff_sift,
         'kaze': diff_kaze,
         'surf': diff_surf,
+        'ssim': diff_ssim,
     }
     result = switcher[args.algorithm](resized_img1, resized_img2)
     if result >= 0:
