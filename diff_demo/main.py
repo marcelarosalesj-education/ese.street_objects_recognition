@@ -8,6 +8,8 @@ import numpy as np
 import skimage.measure
 
 
+DISPLAY = False
+
 parser = argparse.ArgumentParser(description='Image Similarity Tool')
 parser.add_argument('-i', '--input', nargs=2, required=True,
                     help='Two input images')
@@ -20,6 +22,10 @@ parser.add_argument('-a', '--algorithm', required=True,
 parser.add_argument('-c', '--colorspace', default='bgr',
                     choices=['bgr', 'gray'],
                     help='Select colorspace for processing images')
+parser.add_argument('-d', '--display',
+                    help='Display result images',
+                    action='store_true',
+                    default=False)
 
 def get_resized_image(image, scale=0.5):
     """
@@ -91,6 +97,7 @@ def diff_sift(image1, image2):
         float: percentage
 
     """
+    global DISPLAY
     sift = cv2.xfeatures2d.SIFT_create()
     key_points_1, desc_1 = sift.detectAndCompute(image1, None)
     key_points_2, desc_2 = sift.detectAndCompute(image2, None)
@@ -122,7 +129,8 @@ def diff_sift(image1, image2):
         else len(key_points_2))
 
     result = cv2.drawMatches(image1, key_points_1, image2, key_points_2, good_points, None)
-    cv2.imshow('result_sift', result)
+    if DISPLAY:
+        cv2.imshow('result_sift', result)
     return len(good_points) / number_keypoints * 100
 
 def diff_kaze(image1, image2):
@@ -137,6 +145,7 @@ def diff_kaze(image1, image2):
         float: percentage
 
     """
+    global DISPLAY
     kaze = cv2.KAZE_create()
     key_points_1, desc_1 = kaze.detectAndCompute(image1, None)
     key_points_2, desc_2 = kaze.detectAndCompute(image2, None)
@@ -168,7 +177,8 @@ def diff_kaze(image1, image2):
         else len(key_points_2))
 
     result = cv2.drawMatches(image1, key_points_1, image2, key_points_2, good_points, None)
-    cv2.imshow('result_kaze', result)
+    if DISPLAY:
+        cv2.imshow('result_kaze', result)
     return len(good_points) / number_keypoints * 100
 
 def diff_surf(image1, image2):
@@ -182,6 +192,7 @@ def diff_surf(image1, image2):
         float: percentage
 
     """
+    global DISPLAY
     surf = cv2.xfeatures2d.SURF_create()
     key_points_1, desc_1 = surf.detectAndCompute(image1, None)
     key_points_2, desc_2 = surf.detectAndCompute(image2, None)
@@ -215,7 +226,8 @@ def diff_surf(image1, image2):
     result = cv2.drawMatches(image1, key_points_1,
                              image2, key_points_2,
                              good_points, None)
-    cv2.imshow('result_surf', result)
+    if DISPLAY:
+        cv2.imshow('result_surf', result)
     return len(good_points) / number_keypoints * 100
 
 def diff_ssim(image1, image2):
@@ -233,10 +245,11 @@ def diff_ssim(image1, image2):
     Note that SSIM score goes from -1 to 1
     https://github.com/jterrace/pyssim/issues/15
     """
-
+    global DISPLAY
     (score, diff) = skimage.measure.compare_ssim(image1, image2, full=True)
-    # Scale score from [-1,1] to [0,1]
+    # Scale score from [-1,1] to [0,1], then convert to percentage
     score = (score+1)/2
+    score = score * 100
     # Scale diff differences matrix [-1,1] to [0,255]
     diff = (diff * 255).astype('uint8')
 
@@ -253,10 +266,12 @@ def diff_ssim(image1, image2):
         cv2.rectangle(image1, (x, y), (x + w, y + h), (0, 0, 255), 2)
         cv2.rectangle(image2, (x, y), (x + w, y + h), (0, 0, 255), 2)
     # Show the output images
-    cv2.imshow("Original", image1)
-    cv2.imshow("Modified", image2)
-    cv2.imshow("Diff", diff)
-    cv2.imshow("Thresh", thresh)
+    print(DISPLAY)
+    if DISPLAY:
+        cv2.imshow("Original", image1)
+        cv2.imshow("Modified", image2)
+        cv2.imshow("Diff", diff)
+        cv2.imshow("Thresh", thresh)
     return score
 
 
@@ -264,11 +279,16 @@ def main():
     """
     main
     """
-    # Get input
+    # Parse arguments
     args = parser.parse_args()
+    # Get input
     filename1 = args.input[0]
     filename2 = args.input[1]
     scale = args.scale
+    # Display options
+    global DISPLAY
+    if args.display:
+        DISPLAY = True
     # Get images
     img1 = cv2.imread(filename1)
     img2 = cv2.imread(filename2)
@@ -285,8 +305,9 @@ def main():
     # Resize images
     resized_img1 = get_resized_image(img1, scale)
     resized_img2 = get_resized_image(img2, scale)
-    cv2.imshow("Resized Picture 1", resized_img1)
-    cv2.imshow("Resized Picture 2", resized_img2)
+    if DISPLAY:
+        cv2.imshow("Resized Picture 1", resized_img1)
+        cv2.imshow("Resized Picture 2", resized_img2)
     display_image_information(resized_img1, header='Resized Image 1')
     display_image_information(resized_img2, header='Resized Image 2')
     # Select difference algorithm
