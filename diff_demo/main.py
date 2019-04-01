@@ -6,9 +6,10 @@ import cv2
 import imutils
 import numpy as np
 import skimage.measure
-
+import logging as log
 
 DISPLAY = False
+VERBOSITY = 0
 
 parser = argparse.ArgumentParser(description='Image Similarity Tool')
 parser.add_argument('-i', '--input', nargs=2, required=True,
@@ -26,13 +27,17 @@ parser.add_argument('-d', '--display',
                     help='Display result images',
                     action='store_true',
                     default=False)
+parser.add_argument('-v', '--verbose',
+                    help='Increase output verbosity',
+                    action='count',
+                    default=0)
 
 def get_resized_image(image, scale=0.5):
     """
     About scaling and resizing:
     https://docs.opencv.org/3.4.2/da/d6e/tutorial_py_geometric_transformations.html
     """
-    print("Resizing to {}%".format(scale*100))
+    log.info("Resizing to {}%".format(scale*100))
     resized_image = cv2.resize(image, None, fx=scale, fy=scale)
     return resized_image
 
@@ -40,11 +45,11 @@ def display_image_information(image, header=''):
     """
     Display image shape
     """
-    print('********************')
+    log.info('********************')
     if header:
-        print(header)
-    print('Shape: {}'.format(image.shape))
-    print('********************')
+        log.info(header)
+    log.info('Shape: {}'.format(image.shape))
+    log.info('********************')
 
 
 def generate_random_complementary_images():
@@ -101,8 +106,8 @@ def diff_sift(image1, image2):
     sift = cv2.xfeatures2d.SIFT_create()
     key_points_1, desc_1 = sift.detectAndCompute(image1, None)
     key_points_2, desc_2 = sift.detectAndCompute(image2, None)
-    print('Key Points 1st: {}'.format(len(key_points_1)))
-    print('Key Points 2nd: {}'.format(len(key_points_2)))
+    log.info('Key Points 1st: {}'.format(len(key_points_1)))
+    log.info('Key Points 2nd: {}'.format(len(key_points_2)))
 
     index_params = dict(algorithm=0, trees=5)
     search_params = dict()
@@ -111,7 +116,7 @@ def diff_sift(image1, image2):
     try:
         matches = flann.knnMatch(desc_1, desc_2, k=2)
     except cv2.error:
-        print('There was an error in SIFT Match phase')
+        log.error('There was an error in SIFT Match phase')
         return -1
 
     good_points = []
@@ -120,7 +125,7 @@ def diff_sift(image1, image2):
         # The less the distance, the better the matches
         if m.distance < ratio*n.distance:
             good_points.append(m)
-    print('Good Points: {}'.format(len(good_points)))
+    log.info('Good Points: {}'.format(len(good_points)))
 
     # How similar they are
     number_keypoints = 0
@@ -149,8 +154,8 @@ def diff_kaze(image1, image2):
     kaze = cv2.KAZE_create()
     key_points_1, desc_1 = kaze.detectAndCompute(image1, None)
     key_points_2, desc_2 = kaze.detectAndCompute(image2, None)
-    print('Key Points 1st: {}'.format(len(key_points_1)))
-    print('Key Points 2nd: {}'.format(len(key_points_2)))
+    log.info('Key Points 1st: {}'.format(len(key_points_1)))
+    log.info('Key Points 2nd: {}'.format(len(key_points_2)))
 
     index_params = dict(algorithm=0, trees=5)
     search_params = dict()
@@ -159,7 +164,7 @@ def diff_kaze(image1, image2):
     try:
         matches = flann.knnMatch(desc_1, desc_2, k=2)
     except cv2.error:
-        print('There was an error in KAZE Match phase')
+        log.error('There was an error in KAZE Match phase')
         return -1
 
     good_points = []
@@ -168,7 +173,7 @@ def diff_kaze(image1, image2):
         # The less the distance, the better the matches
         if m.distance < ratio*n.distance:
             good_points.append(m)
-    print('Good Points: {}'.format(len(good_points)))
+    log.info('Good Points: {}'.format(len(good_points)))
 
     # How similar they are
     number_keypoints = 0
@@ -196,8 +201,8 @@ def diff_surf(image1, image2):
     surf = cv2.xfeatures2d.SURF_create()
     key_points_1, desc_1 = surf.detectAndCompute(image1, None)
     key_points_2, desc_2 = surf.detectAndCompute(image2, None)
-    print('Key Points 1st: {}'.format(len(key_points_1)))
-    print('Key Points 2nd: {}'.format(len(key_points_2)))
+    log.info('Key Points 1st: {}'.format(len(key_points_1)))
+    log.info('Key Points 2nd: {}'.format(len(key_points_2)))
 
     index_params = dict(algorithm=0, trees=5)
     search_params = dict()
@@ -206,7 +211,7 @@ def diff_surf(image1, image2):
     try:
         matches = flann.knnMatch(desc_1, desc_2, k=2)
     except cv2.error:
-        print('There was an error in SURF Match phase')
+        log.error('There was an error in SURF Match phase')
         return -1
 
     good_points = []
@@ -215,7 +220,7 @@ def diff_surf(image1, image2):
         # The less the distance, the better the matches
         if m.distance < ratio*n.distance:
             good_points.append(m)
-    print('Good Points: {}'.format(len(good_points)))
+    log.info('Good Points: {}'.format(len(good_points)))
 
     # How similar they are
     number_keypoints = 0
@@ -266,7 +271,6 @@ def diff_ssim(image1, image2):
         cv2.rectangle(image1, (x, y), (x + w, y + h), (0, 0, 255), 2)
         cv2.rectangle(image2, (x, y), (x + w, y + h), (0, 0, 255), 2)
     # Show the output images
-    print(DISPLAY)
     if DISPLAY:
         cv2.imshow("Original", image1)
         cv2.imshow("Modified", image2)
@@ -289,6 +293,12 @@ def main():
     global DISPLAY
     if args.display:
         DISPLAY = True
+    # Set up verbosity options
+    if args.verbose == 0:
+        log.basicConfig(format='%(levelname)s: %(message)s')
+    else:
+        log.basicConfig(format='%(levelname)s: %(message)s', level=log.DEBUG)
+        log.info('Verbose output')
     # Get images
     img1 = cv2.imread(filename1)
     img2 = cv2.imread(filename2)
@@ -298,7 +308,7 @@ def main():
         img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
     # Verify shape
     if img1.shape != img2.shape:
-        print('Images have different shapes, cannot perform a comparison.')
+        log.error('Images have different shapes, cannot perform a comparison.')
         return -1
     display_image_information(img1, header='Original Image 1')
     display_image_information(img2, header='Original Image 2')
