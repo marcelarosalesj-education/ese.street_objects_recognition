@@ -330,7 +330,7 @@ def main():
     }
     result = switcher[args.algorithm](resized_img1, resized_img2)
     if result >= 0:
-        print("Result is {0:.2f} %".format(result))
+        print("Similarity result: {0:.2f} %".format(result))
     # Destroy windows
     cv2.waitKey(0)
     cv2.destroyAllWindows()
