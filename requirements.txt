@@ -2,6 +2,7 @@ backcall==0.1.0
 cycler==0.10.0
 decorator==4.3.2
 future==0.17.1
+gps==3.9
 imageio==2.5.0
 imutils==0.5.2
 ipdb==0.11
@@ -20,6 +21,7 @@ Pillow==6.0.0
 prompt-toolkit==2.0.9
 ptyprocess==0.6.0
 Pygments==2.3.1
+pynmea2==1.15.0
 pyparsing==2.4.0
 pyserial==3.4
 python-dateutil==2.8.0
