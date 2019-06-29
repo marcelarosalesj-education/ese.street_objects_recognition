@@ -25,7 +25,7 @@ parser.add_argument('-sa', '--similarity_algorithm', required=False,
                     help='Algorithm for difference comparison')
 
 def add_metadata(filename, info):
-    os.system('exiftool {} -overwrite_original -description="street object map identified is {}"'.format(filename, info))
+    os.system('exiftool {} -overwrite_original -q -description="street object map identified is {}"'.format(filename, info))
 
 
 def object_recognition(image):
