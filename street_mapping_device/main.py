@@ -91,22 +91,18 @@ def main():
         image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         if not count % TIME_FRAME:
             if image_number == 0:
-                new_file = '{}/frame{}.jpg'.format(results_directory, image_number)
-                cv2.imwrite(new_file, image)
-                meta = object_recognition(new_file)
-                add_metadata(new_file, meta)
-                image_number += 1
+                keep = True
             else:
                 last_image_path = '{}/frame{}.jpg'.format(results_directory, image_number - 1)
                 last_image = cv2.imread(last_image_path)
                 last_image_gray = cv2.cvtColor(last_image, cv2.COLOR_BGR2GRAY)
                 keep = compare_with_last(image_gray, last_image_gray)
-                if keep == True:
-                    new_file = '{}/frame{}.jpg'.format(results_directory, image_number)
-                    cv2.imwrite(new_file, image)
-                    meta = object_recognition(new_file)
-                    add_metadata(new_file, meta)
-                    image_number += 1
+            if keep == True:
+                new_file = '{}/frame{}.jpg'.format(results_directory, image_number)
+                cv2.imwrite(new_file, image)
+                meta = object_recognition(new_file)
+                add_metadata(new_file, meta)
+                image_number += 1
         count += 1
         success, image = vidcap.read()
 
