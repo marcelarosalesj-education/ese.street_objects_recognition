@@ -8,7 +8,7 @@ import os
 import skimage.measure
 import imutils
 import matlab.engine
-
+import sys
 
 TIME_FRAME = 10
 LONG_LINE = 60
@@ -55,8 +55,21 @@ def diff_ssim(image1, image2):
                            cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
     return score
 
-def compare_with_last(image, last_image):
-    score = diff_ssim(image, last_image)
+def compare_with_last(image, last_image, similarity_algorithm):
+    if similarity_algorithm == 'ssim':
+        score = diff_ssim(image, last_image)
+    elif similarity_algorithm == 'sift':
+        print('SIFT not supported right now')
+        sys.exit()
+    elif similarity_algorithm == 'kaze':
+        print('KAZE not supported right now')
+        sys.exit()
+    elif similarity_algorithm == 'surf':
+        print('SURF not supported right now')
+        sys.exit()
+    else:
+        print('Invalid similarity algorithm')
+        sys.exit()
     print('Score: {}'.format(score))
     if score < SIMILARITY_ACCEPTANCE:
         return True 
@@ -96,7 +109,7 @@ def main():
                 last_image_path = '{}/frame{}.jpg'.format(results_directory, image_number - 1)
                 last_image = cv2.imread(last_image_path)
                 last_image_gray = cv2.cvtColor(last_image, cv2.COLOR_BGR2GRAY)
-                keep = compare_with_last(image_gray, last_image_gray)
+                keep = compare_with_last(image_gray, last_image_gray, similarity_algorithm)
             if keep == True:
                 new_file = '{}/frame{}.jpg'.format(results_directory, image_number)
                 cv2.imwrite(new_file, image)
