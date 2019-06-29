@@ -7,6 +7,8 @@ import argparse
 import os
 import skimage.measure
 import imutils
+import matlab.engine
+
 
 TIME_FRAME = 10
 LONG_LINE = 60
@@ -20,6 +22,15 @@ parser.add_argument('-sa', '--similarity_algorithm', required=False,
                     choices=['sift', 'kaze', 'surf', 'ssim'],
                     default='ssim',
                     help='Algorithm for difference comparison')
+
+def add_metadata(filename, info):
+    os.system('exiftool {} -overwrite_original -description="street object map identified is {}"'.format(filename, info))
+
+
+def object_recognition(image):
+    eng = matlab.engine.start_matlab()
+    var = eng.use_nn(image)
+    return var[0][0]
 
 def diff_ssim(image1, image2):
     """ Calculates how similar are two images based on SSIM algorithm
@@ -52,6 +63,7 @@ def compare_with_last(image, last_image):
     else:
         return False
 
+
 def main():
     args = parser.parse_args()
     video_file = args.input
@@ -76,18 +88,24 @@ def main():
     count = 0
     image_number = 0
     while success:
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         if not count % TIME_FRAME:
             if image_number == 0:
-                cv2.imwrite('{}/frame{}.jpg'.format(results_directory, image_number), image)
+                new_file = '{}/frame{}.jpg'.format(results_directory, image_number)
+                cv2.imwrite(new_file, image)
+                meta = object_recognition(new_file)
+                add_metadata(new_file, meta)
                 image_number += 1
             else:
                 last_image_path = '{}/frame{}.jpg'.format(results_directory, image_number - 1)
                 last_image = cv2.imread(last_image_path)
-                last_image = cv2.cvtColor(last_image, cv2.COLOR_BGR2GRAY)
-                keep = compare_with_last(image, last_image)
+                last_image_gray = cv2.cvtColor(last_image, cv2.COLOR_BGR2GRAY)
+                keep = compare_with_last(image_gray, last_image_gray)
                 if keep == True:
-                    cv2.imwrite('{}/frame{}.jpg'.format(results_directory, image_number), image)
+                    new_file = '{}/frame{}.jpg'.format(results_directory, image_number)
+                    cv2.imwrite(new_file, image)
+                    meta = object_recognition(new_file)
+                    add_metadata(new_file, meta)
                     image_number += 1
         count += 1
         success, image = vidcap.read()
