@@ -14,7 +14,8 @@ TIME_FRAME = 10
 LONG_LINE = 60
 SIMILARITY_ACCEPTANCE = 70
 
-results_directory = 'Results'
+
+results_directory = ''
 parser = argparse.ArgumentParser(description='Street mapping device - Proof of concept')
 parser.add_argument('-i', '--input', required=True,
                     help='Video input')
@@ -31,6 +32,136 @@ def object_recognition(image):
     eng = matlab.engine.start_matlab()
     var = eng.use_nn(image)
     return var[0][0]
+
+def diff_sift(image1, image2):
+    """Calculates how similar are two images based on SIFT features
+
+    https://pysource.com/2018/07/20/detect-how-similar-two-images-are-with-opencv-and-python/
+
+    Two images are similar if they have many good points in common, but as the size of the image is
+    variant we need to calculate proportionally.
+
+    Args:
+        param1: image
+        param2: image
+    Returns:
+        float: percentage
+
+    """
+    sift = cv2.xfeatures2d.SIFT_create()
+    key_points_1, desc_1 = sift.detectAndCompute(image1, None)
+    key_points_2, desc_2 = sift.detectAndCompute(image2, None)
+
+    index_params = dict(algorithm=0, trees=5)
+    search_params = dict()
+    flann = cv2.FlannBasedMatcher(index_params, search_params)
+
+    try:
+        matches = flann.knnMatch(desc_1, desc_2, k=2)
+    except cv2.error:
+        print('There was an error in SIFT Match phase')
+        return -1
+
+    good_points = []
+    ratio = 0.6
+    for m, n in matches:
+        # The less the distance, the better the matches
+        if m.distance < ratio*n.distance:
+            good_points.append(m)
+
+    # How similar they are
+    number_keypoints = 0
+    number_keypoints = (
+        len(key_points_1) if len(key_points_1) >= len(key_points_2)
+        else len(key_points_2))
+
+    result = cv2.drawMatches(image1, key_points_1, image2, key_points_2, good_points, None)
+    return len(good_points) / number_keypoints * 100
+
+def diff_kaze(image1, image2):
+    """Calculates how similar are two images based on KAZE descriptors
+
+    https://medium.com/machine-learning-world/feature-extraction-and-similar-image-search-with-opencv-for-newbies-3c59796bf774
+
+    Args:
+        param1: image
+        param2: image
+    Returns:
+        float: percentage
+
+    """
+    kaze = cv2.KAZE_create()
+    key_points_1, desc_1 = kaze.detectAndCompute(image1, None)
+    key_points_2, desc_2 = kaze.detectAndCompute(image2, None)
+
+    index_params = dict(algorithm=0, trees=5)
+    search_params = dict()
+    flann = cv2.FlannBasedMatcher(index_params, search_params)
+
+    try:
+        matches = flann.knnMatch(desc_1, desc_2, k=2)
+    except cv2.error:
+        print('There was an error in KAZE Match phase')
+        return -1
+
+    good_points = []
+    ratio = 0.6
+    for m, n in matches:
+        # The less the distance, the better the matches
+        if m.distance < ratio*n.distance:
+            good_points.append(m)
+
+    # How similar they are
+    number_keypoints = 0
+    number_keypoints = (
+        len(key_points_1) if len(key_points_1) >= len(key_points_2)
+        else len(key_points_2))
+
+    result = cv2.drawMatches(image1, key_points_1, image2, key_points_2, good_points, None)
+    return len(good_points) / number_keypoints * 100
+
+def diff_surf(image1, image2):
+    """Calculates how similar are two images based on SURF descriptors
+
+
+    Args:
+        param1: image
+        param2: image
+    Returns:
+        float: percentage
+
+    """
+    surf = cv2.xfeatures2d.SURF_create()
+    key_points_1, desc_1 = surf.detectAndCompute(image1, None)
+    key_points_2, desc_2 = surf.detectAndCompute(image2, None)
+
+    index_params = dict(algorithm=0, trees=5)
+    search_params = dict()
+    flann = cv2.FlannBasedMatcher(index_params, search_params)
+
+    try:
+        matches = flann.knnMatch(desc_1, desc_2, k=2)
+    except cv2.error:
+        print('There was an error in SURF Match phase')
+        return -1
+
+    good_points = []
+    ratio = 0.6
+    for m, n in matches:
+        # The less the distance, the better the matches
+        if m.distance < ratio*n.distance:
+            good_points.append(m)
+
+    # How similar they are
+    number_keypoints = 0
+    number_keypoints = (
+        len(key_points_1) if len(key_points_1) >= len(key_points_2)
+        else len(key_points_2))
+
+    result = cv2.drawMatches(image1, key_points_1,
+                             image2, key_points_2,
+                             good_points, None)
+    return len(good_points) / number_keypoints * 100
 
 def diff_ssim(image1, image2):
     """ Calculates how similar are two images based on SSIM algorithm
@@ -59,14 +190,11 @@ def compare_with_last(image, last_image, similarity_algorithm):
     if similarity_algorithm == 'ssim':
         score = diff_ssim(image, last_image)
     elif similarity_algorithm == 'sift':
-        print('SIFT not supported right now')
-        sys.exit()
+        score = diff_sift(image, last_image)
     elif similarity_algorithm == 'kaze':
-        print('KAZE not supported right now')
-        sys.exit()
+        score = diff_kaze(image, last_image)
     elif similarity_algorithm == 'surf':
-        print('SURF not supported right now')
-        sys.exit()
+        score = diff_surf(image, last_image)
     else:
         print('Invalid similarity algorithm')
         sys.exit()
@@ -83,6 +211,7 @@ def main():
     similarity_algorithm = args.similarity_algorithm
     vidcap = cv2.VideoCapture(video_file)
     length = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
+    results_directory = 'Results-{}'.format(similarity_algorithm)
 
     print('-'*LONG_LINE)
     print('Street mapping device analysis')
@@ -90,6 +219,7 @@ def main():
     print('- Frames in the video {}'.format(length))
     print('- 1 frame every {} frames'.format(TIME_FRAME))
     print('- Similarity algorithm: {}'.format(similarity_algorithm))
+    print('- Results in: {}'.format(results_directory))
     print('-'*LONG_LINE)
 
     try:
