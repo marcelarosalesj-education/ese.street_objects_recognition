@@ -213,15 +213,6 @@ def main():
     length = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
     results_directory = 'Results-{}'.format(similarity_algorithm)
 
-    print('-'*LONG_LINE)
-    print('Street mapping device analysis')
-    print('- Video: {}'.format(video_file))
-    print('- Frames in the video {}'.format(length))
-    print('- 1 frame every {} frames'.format(TIME_FRAME))
-    print('- Similarity algorithm: {}'.format(similarity_algorithm))
-    print('- Results in: {}'.format(results_directory))
-    print('-'*LONG_LINE)
-
     try:
         os.mkdir(results_directory)
     except FileExistsError as e:
@@ -230,9 +221,11 @@ def main():
     success, image = vidcap.read()
     count = 0
     image_number = 0
+    frames_analyzed = 0
     while success:
         image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         if not count % TIME_FRAME:
+            frames_analyzed += 1
             if image_number == 0:
                 keep = True
             else:
@@ -248,6 +241,16 @@ def main():
                 image_number += 1
         count += 1
         success, image = vidcap.read()
+    print('-'*LONG_LINE)
+    print('Street mapping device analysis')
+    print('- Video: {}'.format(video_file))
+    print('- Similarity algorithm: {}'.format(similarity_algorithm))
+    print('- Frames in the video {}'.format(length))
+    print('- 1 frame every {} frames'.format(TIME_FRAME))
+    print('- Frames analyzed:  {}'.format(frames_analyzed))
+    print('- Results in: {}'.format(results_directory))
+    print('- Number of images stored: {}'.format(len(os.listdir(results_directory))))
+    print('-'*LONG_LINE)
 
 if __name__ == '__main__':
     main()
