@@ -19,6 +19,9 @@ results_directory = ''
 parser = argparse.ArgumentParser(description='Street mapping device - Proof of concept')
 parser.add_argument('-i', '--input', required=True,
                     help='Video input')
+parser.add_argument('-o', '--output', required=False,
+                    default='Results',
+                    help='Results directory')
 parser.add_argument('-sa', '--similarity_algorithm', required=False,
                     choices=['sift', 'kaze', 'surf', 'ssim'],
                     default='ssim',
@@ -211,7 +214,7 @@ def main():
     similarity_algorithm = args.similarity_algorithm
     vidcap = cv2.VideoCapture(video_file)
     length = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
-    results_directory = 'Results-{}'.format(similarity_algorithm)
+    results_directory = args.output
 
     try:
         os.mkdir(results_directory)
