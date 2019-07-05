@@ -12,7 +12,7 @@ import sys
 
 TIME_FRAME = 10
 LONG_LINE = 60
-SIMILARITY_ACCEPTANCE = 70
+SIMILARITY_ACCEPTANCE = 75
 
 
 results_directory = ''
@@ -28,13 +28,13 @@ parser.add_argument('-sa', '--similarity_algorithm', required=False,
                     help='Algorithm for difference comparison')
 
 def add_metadata(filename, info):
-    os.system('exiftool {} -overwrite_original -q -description="street object map identified is {}"'.format(filename, info))
+    os.system('exiftool {} -overwrite_original -q -description="{}"'.format(filename, info))
 
 
 def object_recognition(image):
     eng = matlab.engine.start_matlab()
-    var = eng.use_nn(image)
-    return var[0][0]
+    var, per = eng.use_nn(image, nargout=2)
+    return var
 
 def diff_sift(image1, image2):
     """Calculates how similar are two images based on SIFT features
