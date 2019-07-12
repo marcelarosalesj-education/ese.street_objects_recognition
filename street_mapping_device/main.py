@@ -12,7 +12,7 @@ import sys
 
 TIME_FRAME = 10
 LONG_LINE = 60
-SIMILARITY_ACCEPTANCE = 75
+SIMILARITY_ACCEPTANCE = 70
 
 
 results_directory = ''
@@ -232,12 +232,12 @@ def main():
             if image_number == 0:
                 keep = True
             else:
-                last_image_path = '{}/frame{}.jpg'.format(results_directory, image_number - 1)
+                last_image_path = '{}/frame{:02d}.jpg'.format(results_directory, image_number - 1)
                 last_image = cv2.imread(last_image_path)
                 last_image_gray = cv2.cvtColor(last_image, cv2.COLOR_BGR2GRAY)
                 keep = compare_with_last(image_gray, last_image_gray, similarity_algorithm)
             if keep == True:
-                new_file = '{}/frame{}.jpg'.format(results_directory, image_number)
+                new_file = '{}/frame{:02d}.jpg'.format(results_directory, image_number)
                 cv2.imwrite(new_file, image)
                 meta = object_recognition(new_file)
                 add_metadata(new_file, meta)

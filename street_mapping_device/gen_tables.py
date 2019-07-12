@@ -57,7 +57,6 @@ def main():
             except ValueError as e:
                 print(e)
                 cv2.imwrite('results-incomplete.jpg', video_table)
-                import ipdb; ipdb.set_trace()
                 
             x_offset = x_offset + SIZE_W
             if x_offset >= (SIZE_W * NUM_W):
@@ -72,6 +71,39 @@ def main():
     print('- Frames in the video {}'.format(frames_total))
     print('- 1 frame every {} frames'.format(TIME_FRAME))
     print('- Frames analyzed:  {}'.format(frames_analyzed))
+    print('-'*LONG_LINE)
+
+    # Generate table for results
+    frames_total = os.listdir(results_directory)
+    num_frames = len(frames_total)
+    height = num_frames // NUM_W
+    if num_frames % NUM_W:
+        height = height + 1
+    height = height * SIZE_H
+    width = NUM_W * SIZE_W
+    chan = 3
+    video_table = np.zeros((height, width, chan), np.uint8)
+    x_offset = 0
+    y_offset = 0
+    frames_total.sort()
+    for frame in frames_total:
+        print('frame is {}'.format(frame))
+        image = cv2.imread(results_directory+'/'+frame)
+        image = cv2.resize(image, (SIZE_W, SIZE_H))
+        try:
+            video_table[y_offset:y_offset+image.shape[0], x_offset:x_offset+image.shape[1]] = image
+        except ValueError as e:
+            print(e)
+            cv2.imwrite('results-incomplete-results.jpg', video_table)
+        x_offset = x_offset + SIZE_W
+        if x_offset >= (SIZE_W * NUM_W):
+            y_offset = y_offset + SIZE_H
+            x_offset = 0
+    cv2.imwrite('results-complete-results.jpg', video_table)
+
+    print('-'*LONG_LINE)
+    print('- Video: {}'.format(video_file))
+    print('- Frames analyzed:  {}'.format(num_frames))
     print('-'*LONG_LINE)
 
 if __name__ == '__main__':
