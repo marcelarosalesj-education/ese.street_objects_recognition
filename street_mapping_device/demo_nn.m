@@ -37,11 +37,10 @@ for n = 0:(N-1) % iterate through columns (x-axis)
         figure, imshow(img_temp)
         img_resize = imresize(img_temp, [227, 227]);
         fprintf('image: (%d, %d)', n, m);
-        convnet.classify(img_resize)
-        imdspredic = convnet.predict(img_resize);
+        class = convnet.classify(img_resize);
+        score = convnet.predict(img_resize);
+        title(string(class) + ': ' + max(score)*100 );
     end
 end
 
-M = max(imdspredic);
-percentage = M*100;
-fprintf('\nPercentage of: %f\n', percentage);
+
