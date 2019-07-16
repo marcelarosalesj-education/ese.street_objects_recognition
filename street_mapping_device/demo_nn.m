@@ -23,8 +23,8 @@ N = 6; M = 6;
 [y2, x2, z2] = size(image_center);
 count = 1;
 figure
-for n = 0:(N-1) % iterate through columns (x-axis)
-    for m = 0:(M-1) % iterate through rows (y-axis)
+for m = 0:(M-1) % iterate through columns (y-axis)
+    for n = 0:(N-1) % iterate through rows (x-axis)
         y_start = round(m*(y2/M));
         if y_start == 0
             y_start = 1;
