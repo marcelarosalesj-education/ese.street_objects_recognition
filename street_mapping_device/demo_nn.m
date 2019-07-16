@@ -38,9 +38,13 @@ for n = 0:(N-1) % iterate through columns (x-axis)
         img_temp = image_center(y_start:y_end, x_start: x_end, :);
         img_resize = imresize(img_temp, [227, 227]);
         class = convnet.classify(img_resize);
-        score = convnet.predict(img_resize);
+        score = max(convnet.predict(img_resize))*100;
         subplot(6,6, count), imshow(img_temp);
-        subplot(6,6, count), title(string(class) + ': ' + max(score)*100 );
+        if  score > 70.0
+            subplot(6,6, count), title('\color{red}'+string(class) + ': ' + string(score));
+        else
+            subplot(6,6, count), title(string(class) + ': ' + score );
+        end
         count = count + 1;
     end
 end
