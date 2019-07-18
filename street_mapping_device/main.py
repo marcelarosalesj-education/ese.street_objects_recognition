@@ -9,6 +9,7 @@ import skimage.measure
 import imutils
 import matlab.engine
 import sys
+import shutil
 
 TIME_FRAME = 10
 LONG_LINE = 60
@@ -220,6 +221,9 @@ def main():
         os.mkdir(results_directory)
     except FileExistsError as e:
         print('W: {}'.format(e))
+        print('W: Directory was removed.')
+        shutil.rmtree(results_directory)
+        os.mkdir(results_directory)
 
     success, image = vidcap.read()
     count = 0
