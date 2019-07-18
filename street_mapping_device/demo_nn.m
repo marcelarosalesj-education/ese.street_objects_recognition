@@ -19,10 +19,12 @@ figure, imshow(image_original)
 figure, imshow(image_center)
 
 % Split the center of the image in N sections and use neural network
-N = 10; M = 10;
+N = 6; M = 6;
 [y2, x2, z2] = size(image_center);
 count = 1;
 figure
+highest_prediction = 0.0;
+highest_class = ""
 for m = 0:(M-1) % iterate through columns (y-axis)
     for n = 0:(N-1) % iterate through rows (x-axis)
         y_start = round(m*(y2/M));
@@ -39,6 +41,10 @@ for m = 0:(M-1) % iterate through columns (y-axis)
         img_resize = imresize(img_temp, [227, 227]);
         class = convnet.classify(img_resize);
         score = max(convnet.predict(img_resize))*100;
+        if score > highest_prediction
+            highest_prediction = score;
+            highest_class = class;
+        end
         subplot(M, N, count), imshow(img_temp);
         if  score > 70.0
             subplot(M, N, count), title('\color{red}'+string(class) + ': ' + string(score));
@@ -49,4 +55,5 @@ for m = 0:(M-1) % iterate through columns (y-axis)
     end
 end
 
-
+disp(highest_prediction)
+disp(highest_class)
